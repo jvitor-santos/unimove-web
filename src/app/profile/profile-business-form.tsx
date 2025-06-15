@@ -58,8 +58,6 @@ export function ProfileBusinessForm() {
     }
   }
 
-  console.log(form.formState.errors)
-
   const cnpj = form.watch("cnpj");
   const phone = form.watch("phone")
 
@@ -117,10 +115,10 @@ export function ProfileBusinessForm() {
             name="cnpj"
             render={({ field }) => (
               <FormItem className="col-span-1">
-                <FormLabel>CPF:</FormLabel>
+                <FormLabel>CNPJ:</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Informe seu CPF:"
+                    placeholder="Informe seu CNPJ:"
                     type="text"
                     {...field}
                     value={cnpj}

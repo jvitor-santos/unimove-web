@@ -1,0 +1,227 @@
+import React, { useEffect } from 'react'
+import { useGetInvitations } from './services/invitations' // Caminho para o serviço
+
+const InvitationsList = ({ userId }: { userId: string }) => {
+  const { data, isLoading, isError } = useGetInvitations(userId)
+
+  useEffect(() => {
+    if (isError) {
+      console.error('Failed to fetch invitations')
+    }
+  }, [isError])
+
+  if (isLoading) {
+    return <div>Loading invitations...</div>
+  }
+
+  if (isError) {
+    return <div>Error loading invitations</div>
+  }
+
+  return (
+    <div>
+      <h2>Your Invitations</h2>
+      <ul>
+        {data?.map(invite => (
+          <li key={invite.id}>
+            Group: {invite.group_id}, Role: {invite.role}, Status: {invite.status}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+export default InvitationsList
+
+import { useQuery } from '@tanstack/react-query'
+import { collection, query, where, getDocs } from 'firebase/firestore'
+
+import { firestore } from '@/firebase/client'
+
+type TGetInvitationsProps = {
+  userId: string // ID do usuário cujos convites você deseja buscar
+}
+
+export const getInvitations = async ({ userId }: TGetInvitationsProps): Promise<any[]> => {
+  if (!userId) {
+    throw new Error('User ID is required')
+  }
+
+  const route = 'invites'
+  const invitesRef = collection(firestore, route)
+
+  try {
+    // Consulta para buscar os convites do usuário (status "pending" por exemplo)
+    const q = query(invitesRef, where('user_id', '==', userId))
+
+    const querySnapshot = await getDocs(q)
+    const invitations: any[] = []
+
+    querySnapshot.forEach(doc => {
+      invitations.push({ id: doc.id, ...doc.data() })
+    })
+
+    return invitations
+  } catch (err) {
+    console.log('🚀 ~ err:', err)
+    throw new Error('Failed to get the invitations')
+  }
+}
+
+export const useGetInvitations = (userId: string) => {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['invitations', userId],
+    queryFn: () => getInvitations({ userId }),
+    enabled: !!userId,  // Somente executa a consulta se o userId estiver disponível
+  })
+
+  return { data, isLoading, isError }
+}
+
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { doc, updateDoc, arrayRemove } from 'firebase/firestore'
+
+import { firestore } from '@/firebase/client'
+
+type TRemoveUserProps = {
+  userId: string // ID do usuário (motorista ou passageiro) a ser removido
+  groupId: string // ID do grupo do qual o usuário será removido
+}
+
+export const removeUserFromGroup = async ({ userId, groupId }: TRemoveUserProps): Promise<void> => {
+  if (!userId || !groupId) {
+    throw new Error('Missing required parameters')
+  }
+
+  try {
+    // Referência ao grupo específico
+    const groupRef = doc(firestore, 'groups', groupId)
+
+    // Removendo o usuário das listas de drivers e users
+    await updateDoc(groupRef, {
+      drivers: arrayRemove(userId),  // Removendo o ID do motorista da lista de drivers
+      users: arrayRemove(userId),    // Removendo o usuário da lista de users
+    })
+  } catch (err) {
+    console.log('🚀 ~ err:', err)
+
+    throw new Error('Failed to remove the user from the group')
+  }
+}
+
+export const useRemoveUserFromGroup = () => {
+  const queryClient = useQueryClient()
+
+  const mutate = useMutation({
+    mutationFn: removeUserFromGroup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] })
+    },
+  })
+
+  return mutate
+}
+
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore'
+
+import { firestore } from '@/firebase/client'
+
+type TAcceptInviteProps = {
+  userId: string // ID do usuário (motorista) que aceitou o convite
+  groupId: string // ID do grupo onde o convite foi enviado
+  ownerId: string // ID do dono do grupo (quem enviou o convite)
+}
+
+export const acceptInvite = async ({ userId, groupId, ownerId }: TAcceptInviteProps): Promise<void> => {
+  if (!userId || !groupId || !ownerId) {
+    throw new Error('Missing required parameters')
+  }
+
+  try {
+    // Referência ao grupo específico
+    const groupRef = doc(firestore, 'groups', groupId)
+
+    // Atualizando o grupo, adicionando o motorista à lista de drivers e users
+    await updateDoc(groupRef, {
+      drivers: arrayUnion(userId),  // Adicionando o ID do motorista à lista de drivers
+      users: arrayUnion(userId),    // Adicionando o motorista à lista de users (caso não tenha sido adicionado antes)
+      ownerId: ownerId             // Confirmando o dono do grupo (caso necessário atualizar)
+    })
+  } catch (err) {
+    console.log('🚀 ~ err:', err)
+
+    throw new Error('Failed to accept the invite')
+  }
+}
+
+export const useAcceptInvite = () => {
+  const queryClient = useQueryClient()
+
+  const mutate = useMutation({
+    mutationFn: acceptInvite,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] })
+    },
+  })
+
+  return mutate
+}
+
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { addDoc, collection } from 'firebase/firestore'
+
+import { firestore } from '@/firebase/client'
+
+type TCreateInviteProps = {
+  userId: string // ID do usuário (motorista ou passageiro) que receberá o convite
+  groupId: string // ID do grupo para o qual o convite está sendo enviado
+  role: 'passenger' | 'driver' // Definir se é um convite para passageiro ou motorista
+  ownerId: string // ID do dono do grupo (quem está enviando o convite)
+}
+
+export const createInvite = async ({
+  userId,
+  groupId,
+  role,
+  ownerId,
+}: TCreateInviteProps): Promise<void> => {
+  if (!userId || !groupId || !role || !ownerId) {
+    throw new Error('Missing required parameters')
+  }
+
+  const route = 'invites'
+
+  try {
+    const invitesRef = collection(firestore, route)
+
+    // Criando o convite na coleção
+    await addDoc(invitesRef, {
+      user_id: userId,           // ID do usuário convidado
+      group_id: groupId,         // ID do grupo para o qual o convite foi enviado
+      role: role,                // Tipo de convite: 'passenger' ou 'driver'
+      status: 'pending',         // Status inicial do convite: pendente
+      created_at: new Date(),    // Data e hora de criação do convite
+      expires_at: new Date(new Date().getTime() + 24 * 60 * 60 * 1000),  // Expira em 24 horas
+      ownerId: ownerId,          // ID do dono do grupo (quem está enviando o convite)
+    })
+  } catch (err) {
+    console.log('🚀 ~ err:', err)
+
+    throw new Error('Failed to create the invite')
+  }
+}
+
+export const useCreateInvite = () => {
+  const queryClient = useQueryClient()
+
+  const mutate = useMutation({
+    mutationFn: createInvite,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invites'] })
+    },
+  })
+
+  return mutate
+}

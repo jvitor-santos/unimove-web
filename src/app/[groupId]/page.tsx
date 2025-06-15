@@ -1,19 +1,39 @@
 import { Footer } from "@/components/footer";
-import { GroupTable } from "@/components/group/groups-table";
+import { GuestMembersTable } from "@/components/guest-members/guest-members-table";
 import { Header } from "@/components/header";
+import { MembersTable } from "@/components/members/members-table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Group() {
   return (
-    <div className="flex size-full min-h-dvh flex-col">
-      <div className="flex size-full flex-1 flex-col items-center min-h-full">
-        <Header />
-        
-        <main className="flex size-full flex-1 flex-col gap-4 p-4 max-w-2xl">
-          <GroupTable />
-        </main>
+    <div className="flex flex-col h-dvh">
+      <Header />
 
-        <Footer />
-      </div>
+      <main className="flex-1 flex flex-col items-center min-h-0">
+        <div className="w-full h-full">
+          <ScrollArea className="h-full p-4">
+            <Tabs defaultValue="members" className="w-full h-auto">
+              <TabsList className="w-full h-auto bg-transparent p-0">
+                <TabsTrigger value="members">Membros</TabsTrigger>
+                <TabsTrigger value="invitations">Convites</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="members" className="w-full h-auto">
+                <MembersTable />
+              </TabsContent>
+
+              <TabsContent value="invitations">
+                <GuestMembersTable />
+              </TabsContent>
+            </Tabs>
+          </ScrollArea>
+        </div>
+
+
+      </main>
+
+      <Footer />
     </div>
   );
 }

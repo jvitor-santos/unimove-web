@@ -15,7 +15,7 @@ export default function Profile() {
       <Header />
 
       <main className="flex-1 flex flex-col items-center min-h-0">
-        <div className="w-full max-w-2xl h-full">
+        <div className="w-full h-full">
           <ScrollArea className="h-full p-4">
             {data?.accountType === "business" && (
               <ProfileBusinessForm />
