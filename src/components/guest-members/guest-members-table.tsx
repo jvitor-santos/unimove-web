@@ -37,8 +37,8 @@ export function GuestMembersTable() {
   const params = useParams()
   const groupId =
     typeof params.groupId === 'string'
-      ? params.groupId
-      : params.groupId?.[0]
+    ? params.groupId
+    : params.groupId?.[0]
 
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])

@@ -21,7 +21,7 @@ export function HeaderButtonUser() {
   return (
     <>
       {!isUserLoading && currentUser ? (
-        <NextLink href="#" className="flex size-auto items-center gap-2 transition-opacity hover:opacity-80 focus:outline-none">
+        <NextLink href="#" className="flex w-full size-auto items-center gap-2 transition-opacity hover:opacity-80 focus:outline-none">
           <Avatar className="size-9 rounded-full">
             <AvatarImage alt="" src="" />
             <AvatarFallback className="rounded-full">
@@ -39,7 +39,7 @@ export function HeaderButtonUser() {
           </div>
         </NextLink>
       ) : (
-        <div className="flex size-auto items-center gap-2">
+        <div className="flex w-full size-auto items-center gap-2">
           <Skeleton className="size-9 rounded-full bg-gray-200" />
 
           <div className="flex size-auto flex-col items-start gap-y-0.5">

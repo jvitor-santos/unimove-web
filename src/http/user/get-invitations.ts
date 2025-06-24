@@ -5,8 +5,7 @@ import { firestore } from '@/firebase/client'
 import { useParams } from 'next/navigation'
 
 type TGetInvitationsProps = {
-  ownerId?: string | null
-  groupId?: string | null
+  email?: string | null
 }
 
 type TGetInvitationsResponse = {
@@ -17,10 +16,9 @@ type TGetInvitationsResponse = {
 }[]
 
 export const getInvitations = async ({
-  ownerId,
-  groupId,
+  email,
 }: TGetInvitationsProps): Promise<TGetInvitationsResponse> => {
-  if (!ownerId || !groupId) {
+  if (!email) {
     throw new Error('....')
   }
 
@@ -30,8 +28,8 @@ export const getInvitations = async ({
     const invitationsRef = collection(firestore, route)
 
     const filters = [
-      where('groupId', '==', groupId),
-      where('ownerId', '==', ownerId),
+      where('email', '==', email),
+      where('status', '==', 'pending')
     ]
     const invitationsQuery = query(invitationsRef, ...filters)
 
@@ -51,13 +49,11 @@ export const getInvitations = async ({
 }
 
 export const useGetInvitations = ({
-  groupId,
-  ownerId,
+  email,
 }: TGetInvitationsProps): UseQueryResult<TGetInvitationsResponse> => {
   return useQuery({
-    queryKey: ['invitations'],
-    queryFn: () => getInvitations({ groupId, ownerId }),
-    enabled: !!groupId,
+    queryKey: ['invitations-user'],
+    queryFn: () => getInvitations({ email }),
     staleTime: 60 * 60 * 24,
   })
 }
