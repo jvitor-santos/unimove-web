@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { deleteDoc, doc } from 'firebase/firestore'
 
 import { firestore } from '@/firebase/client'
@@ -20,4 +21,15 @@ export const deleteGroup = async ({
 
     throw new Error('....')
   }
+}
+
+export const useDeleteGroup = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: deleteGroup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] })
+    },
+  })
 }

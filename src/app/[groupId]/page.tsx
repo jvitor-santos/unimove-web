@@ -10,7 +10,7 @@ import { useGetUser } from "@/http/user/get-user";
 
 export default function Group() {
   const { data } = useGetUser()
-
+  
   return (
     <div className="flex flex-col h-dvh">
       <Header />
@@ -38,7 +38,6 @@ export default function Group() {
             {data?.accountType === "personal" && (
               <MembersTable />
             )}
-
           </ScrollArea>
         </div>
       </main>

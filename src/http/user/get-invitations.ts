@@ -2,7 +2,6 @@ import { useQuery, UseQueryResult } from '@tanstack/react-query'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 
 import { firestore } from '@/firebase/client'
-import { useParams } from 'next/navigation'
 
 type TGetInvitationsProps = {
   email?: string | null
@@ -52,8 +51,9 @@ export const useGetInvitations = ({
   email,
 }: TGetInvitationsProps): UseQueryResult<TGetInvitationsResponse> => {
   return useQuery({
-    queryKey: ['invitations-user'],
+    queryKey: ['invitations-user', { email }],
     queryFn: () => getInvitations({ email }),
-    staleTime: 60 * 60 * 24,
+    enabled: !!email,
+    staleTime: 0,
   })
 }

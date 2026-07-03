@@ -3,15 +3,15 @@ import { BusFront, LucideIcon, User } from "lucide-react"
 export const formatStatusInvitations: Record<string, {title: string, color: string}> = {
   'pending': {
     title: 'Pendente',
-    color: 'text-red-400'
+    color: 'text-yellow-400'
   },
   'accepted': {
     title: 'Aceita',
-    color: ''
+    color: 'text-green-400'
   },
   'rejected': {
     title: 'Recusada',
-    color: ''
+    color: 'text-red-400'
   }
 }
 

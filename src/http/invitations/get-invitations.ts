@@ -55,7 +55,7 @@ export const useGetInvitations = ({
   ownerId,
 }: TGetInvitationsProps): UseQueryResult<TGetInvitationsResponse> => {
   return useQuery({
-    queryKey: ['invitations'],
+    queryKey: ['invitations', { groupId, ownerId }],
     queryFn: () => getInvitations({ groupId, ownerId }),
     enabled: !!groupId,
     staleTime: 60 * 60 * 24,

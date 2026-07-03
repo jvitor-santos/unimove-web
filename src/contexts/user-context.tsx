@@ -4,6 +4,7 @@ import { onAuthStateChanged, User } from 'firebase/auth'
 import { createContext, Dispatch, ReactNode, SetStateAction, useEffect, useState } from 'react'
 
 import { auth } from '@/firebase/client'
+import { useQueryClient } from '@tanstack/react-query'
 import { deleteCookie, setCookie } from 'cookies-next/client'
 
 type TUserContext = {
@@ -21,6 +22,7 @@ export const UserContext = createContext<TUserContext>({} as TUserContext)
 export function UserProvider({ children }: TUserContextProvider) {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [isUserLoading, setIsUserLoading] = useState(true)
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     const unsubscriber = onAuthStateChanged(auth, async (user) => {
@@ -33,15 +35,14 @@ export function UserProvider({ children }: TUserContextProvider) {
         setCookie('token', token)
         setIsUserLoading(false)
       } else {
-        await auth.signOut()
-
         deleteCookie('token')
+        queryClient.clear()
         setIsUserLoading(false)
       }
     })
 
     return () => unsubscriber()
-  }, [])
+  }, [queryClient])
 
   return (
     <UserContext.Provider

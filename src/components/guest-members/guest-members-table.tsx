@@ -32,6 +32,7 @@ import { useParams } from 'next/navigation'
 import { useUser } from '@/hooks/use-user'
 import { formatRolesInvitations, formatStatusInvitations } from '@/utils/format-invitations'
 import { DeleteInvitationDialogAlert } from './delete-invitation-dialog-alert'
+import { formatDate } from '@/utils/formatting/format-date'
 
 export function GuestMembersTable() {
   const params = useParams()
@@ -52,6 +53,7 @@ export function GuestMembersTable() {
     groupId,
     ownerId: currentUser?.uid,
   })
+  console.log("🚀 ~ GuestMembersTable ~ invitations:", invitations)
 
   const invitationsList = useMemo(() => {
     return invitations ?? []
@@ -75,7 +77,7 @@ export function GuestMembersTable() {
         )
       },
       cell: ({ row }) => {
-        const { email, status, role } = row.original
+        const { email, status, role, updated_at } = row.original
 
         const IconComponent = formatRolesInvitations[role].icon;
 
@@ -83,8 +85,12 @@ export function GuestMembersTable() {
           <div className='w-auto h-auto flex flex-col gap-2'>
             <p>{email}</p>
             <p className='line-clamp-1 text-xs text-muted-foreground flex gap-1 items-center'>
-              <IconComponent size={14}/> <span>{formatRolesInvitations[role].title}</span> - <span className={`${formatStatusInvitations[status].color} font-bold`}>{formatStatusInvitations[status].title}</span>
+              <IconComponent size={14}/> 
+              <span>{formatRolesInvitations[role].title}</span> - 
+              <span className={`${formatStatusInvitations[status].color} font-bold`}>{formatStatusInvitations[status].title}</span>
+              {updated_at && (<span>- {formatDate({ type: 'short', timestamp: updated_at })}</span>)}
             </p>
+            {updated_at && <p></p>}
           </div>
         )
       },
@@ -96,11 +102,11 @@ export function GuestMembersTable() {
       accessorKey: 'actions',
       enableResizing: false,
       cell: ({ row }) => {
-        const { id } = row.original
+        const { id, status } = row.original
        
         return (
           <div className="flex h-auto justify-end">
-            <DeleteInvitationDialogAlert id={id} />
+            {status === 'pending' && (<DeleteInvitationDialogAlert id={id} />)}
           </div>
         )
       },

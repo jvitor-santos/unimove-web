@@ -12,8 +12,11 @@ import {
   useReactTable,
   VisibilityState,
 } from '@tanstack/react-table'
-import { ArrowUpDown, Loader2, Users } from 'lucide-react'
+import { ArrowUpDown, BusFront, Check, Loader2, Play, Square, User, UserRoundCog, X } from 'lucide-react'
 import NextLink from 'next/link'
+import { toast } from 'sonner'
+import { useStartRoute } from '@/http/groups/start-route'
+import { useFinishRoute } from '@/http/groups/finish-route'
 import * as React from 'react'
 import { useMemo, useState } from 'react'
 
@@ -27,9 +30,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useGetGroups } from '@/http/groups/get-groups'
 import { useGetUser } from '@/http/user/get-user'
 import { CreateInvitationDialog } from './create-invitation-dialog'
+import { useGetUsersGroup } from '@/http/groups/get-users-group'
+import { useParams } from 'next/navigation'
+import { useGetGroup } from '@/http/groups/get-group'
+import { useGetGroupUsersDetails } from '@/http/groups/get-users-groups-details'
 
 export function MembersTable() {
   const [sorting, setSorting] = useState<SortingState>([])
@@ -37,16 +43,114 @@ export function MembersTable() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState({})
 
-  const { data } = useGetUser()
-  const { data: groups, isLoading } = useGetGroups()
+  const params = useParams()
+  const groupId =
+    typeof params.groupId === 'string'
+      ? params.groupId
+      : params.groupId?.[0]
 
-  const groupsList = useMemo(() => {
-    return []
-  }, [groups])
+  const { data } = useGetUser()
+  const { data: group } = useGetGroup()
+  const { data: members, isLoading } = useGetUsersGroup()
+  const { data: membersDetails } = useGetGroupUsersDetails()
+
+  const { mutateAsync: startRoute, isPending: isStartingRoute } = useStartRoute()
+  const { mutateAsync: finishRoute, isPending: isFinishingRoute } = useFinishRoute()
+
+  const membersList = useMemo(() => {
+    return members ?? []
+  }, [members])
+
+  const isCurrentUserDriver = group?.drivers?.includes(data?.id) ?? false
+  const isRouteActive = group?.isRouteActive ?? false
+
+  const handleStartRoute = async () => {
+    if (!groupId || !membersList) return
+
+    const memberIdsToUpdate = membersList
+      .filter((member: any) => {
+        const isDriver = group?.drivers?.includes(member.id) ?? false
+        if (isDriver) return false
+
+        const boardingStatus = membersDetails?.find((m: any) => m.id === member.id)?.boardingStatus
+        return boardingStatus !== true
+      })
+      .map((member: any) => member.id)
+
+    try {
+      await startRoute({ groupId, memberIdsToUpdate })
+      toast.success('Rota iniciada com sucesso! Os passageiros pendentes foram atualizados para não embarcar.')
+    } catch (err) {
+      toast.error('Erro ao iniciar a rota.')
+    }
+  }
+
+  const handleFinishRoute = async () => {
+    if (!groupId || !membersDetails) return
+
+    const memberIdsToReset = membersDetails.map((m: any) => m.id)
+
+    try {
+      await finishRoute({ groupId, memberIdsToReset })
+      toast.success('Rota finalizada com sucesso! A presença de todos os passageiros foi reiniciada.')
+    } catch (err) {
+      toast.error('Erro ao finalizar a rota.')
+    }
+  }
 
   const columns: ColumnDef<any>[] = [
     {
-      accessorKey: 'name',
+      accessorKey: 'userBoardingStatus',
+      enableResizing: false,
+      cell: ({ row }) => {
+        const { id } = row.original
+        const isDriver = group?.drivers?.includes(id) ?? false
+
+        const boardingStatus = membersDetails?.find((member: any) => member.id === id)?.boardingStatus
+ 
+        if (isDriver) {
+          return <div className="flex h-auto justify-end"></div>
+        }
+
+        if (boardingStatus === undefined || boardingStatus === null) {
+          return <div className="flex h-auto justify-end"></div>
+        }
+
+        return (
+          <div className="flex h-auto justify-end">
+            {boardingStatus ? (
+              <Check size={16} className="text-green-500" />
+            ) : (
+              <X size={16} className="text-red-500" />
+            )}
+          </div>
+        )
+      },
+      header: '',
+      meta: {
+        headerClassName: '',
+      },
+    },
+    {
+      accessorKey: 'userType',
+      enableResizing: false,
+      cell: ({ row }) => {
+        const { id, } = row.original
+        const isDriver = group?.drivers?.includes(id) ?? false
+
+        return (
+          <div className="flex h-auto justify-end">
+            {isDriver ? <BusFront size={16} /> : <User size={16} />}
+          </div>
+        )
+      },
+      header: '',
+      meta: {
+        headerClassName: '',
+      },
+    },
+    {
+      accessorKey: 'displayName',
       enableResizing: false,
       header: ({ column }) => {
         return (
@@ -62,8 +166,8 @@ export function MembersTable() {
         )
       },
       cell: ({ row }) => {
-        const { name } = row.original
-        return <p>{name}</p>
+        const { displayName } = row.original
+        return <p>{displayName}</p>
       },
       meta: {
         headerClassName: '',
@@ -74,13 +178,20 @@ export function MembersTable() {
       enableResizing: false,
       cell: ({ row }) => {
         const { id, } = row.original
+        const isAdmin = group?.ownerId === data?.id
+        const isDriver = group?.drivers?.includes(data?.id) ?? false
+
+        const isUser = isAdmin || isDriver || id === data.id
+
         return (
           <div className="flex h-auto justify-end">
-            <Button size="sm" variant="outline" asChild>
-              <NextLink href={`/${id}`}>
-                <Users />
-              </NextLink>
-            </Button>
+            {isUser && (
+              <Button size="sm" variant="ghost" asChild>
+                <NextLink href={`/${groupId}/member/${id}`}>
+                  <UserRoundCog />
+                </NextLink>
+              </Button>
+            )}
           </div>
         )
       },
@@ -92,7 +203,7 @@ export function MembersTable() {
   ]
 
   const table = useReactTable({
-    data: groupsList,
+    data: membersList,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -117,11 +228,41 @@ export function MembersTable() {
           <CreateInvitationDialog />
         )}
 
+        {isCurrentUserDriver && (
+          isRouteActive ? (
+            <Button
+              onClick={handleFinishRoute}
+              disabled={isFinishingRoute}
+              className="w-full text-secondary-foreground flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700"
+            >
+              {isFinishingRoute ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Square className="size-4 fill-current" />
+              )}
+              Finalizar Rota
+            </Button>
+          ) : (
+            <Button
+              onClick={handleStartRoute}
+              disabled={isStartingRoute}
+              className="w-full text-secondary-foreground flex items-center justify-center gap-2 bg-primary hover:bg-primary/90"
+            >
+              {isStartingRoute ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Play className="size-4 fill-current" />
+              )}
+              Iniciar Rota
+            </Button>
+          )
+        )}
+
         <Input
           placeholder="Buscar por nome..."
-          value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
+          value={(table.getColumn('displayName')?.getFilterValue() as string) ?? ''}
           onChange={(event) =>
-            table.getColumn('name')?.setFilterValue(event.target.value)
+            table.getColumn('displayName')?.setFilterValue(event.target.value)
           }
           className="w-full"
         />
@@ -152,7 +293,7 @@ export function MembersTable() {
           </TableHeader>
 
           <TableBody>
-            {groups === undefined || isLoading ? (
+            {members === undefined || isLoading ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -164,7 +305,7 @@ export function MembersTable() {
                   </div>
                 </TableCell>
               </TableRow>
-            ) : groups.length && table.getRowModel().rows?.length ? (
+            ) : members.length && table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}

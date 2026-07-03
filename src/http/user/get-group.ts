@@ -11,6 +11,9 @@ type TGetGroupResponse = {
   id: string
   name: string
   users: string[]
+  drivers: string[]
+  ownerId: string
+  isRouteActive?: boolean
 }
 
 export const getGroup = async ({
@@ -31,7 +34,10 @@ export const getGroup = async ({
       throw new Error('....')
     }
 
-    const group = groupSnapshot.data() as any
+    const group = {
+      id: groupSnapshot.id,
+      ...groupSnapshot.data(),
+    } as any
 
     return group
   } catch (err) {
@@ -43,7 +49,7 @@ export const getGroup = async ({
 
 export const useGetGroup = (groupId: string): UseQueryResult<TGetGroupResponse> => {
   return useQuery({
-    queryKey: ['group-user'],
+    queryKey: ['group-user', groupId],
     queryFn: () => getGroup({ groupId }),
     enabled: !!groupId,
     staleTime: 60 * 60 * 24,

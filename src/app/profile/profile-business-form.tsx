@@ -30,6 +30,7 @@ export function ProfileBusinessForm() {
   })
 
   const { data } = useGetUser()
+  console.log("🚀 ~ ProfileBusinessForm ~ data:", data)
   const { mutate, isPending } = useUpdateUser()
 
   const formatCNPJ = (value: string) => {

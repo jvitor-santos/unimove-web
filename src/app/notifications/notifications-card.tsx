@@ -1,3 +1,5 @@
+'use client'
+
 import {
   Card,
   CardAction,
@@ -7,20 +9,30 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Bell } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { useGetGroup } from "@/http/user/get-group";
 import { formatRolesInvitations, formatStatusInvitations } from "@/utils/format-invitations";
 import { formatDate } from "@/utils/formatting/format-date";
 import { Separator } from "@/components/ui/separator";
+import { useUpdateInvitation } from "@/http/user/update-invitation";
+import { useGetUser } from "@/http/user/get-user";
+import { useUser } from "@/hooks/use-user";
 
 interface NotificationsCardProps {
   data: any
 }
 
 export function NotificationsCard({ data }: NotificationsCardProps) {
+  const { currentUser } = useUser()
   const { data: group, isLoading } = useGetGroup(data.groupId)
   const formattedDate = formatDate({ type: 'short', timestamp: data?.created_at })
+  
+  const { mutate } = useUpdateInvitation()
+
+  function onClick(status: string) {
+    mutate({ groupId: data?.groupId, invitationId: data.id, status, userId: currentUser?.uid, role: data?.role })
+  }
 
   return (
     <Card>
@@ -39,8 +51,8 @@ export function NotificationsCard({ data }: NotificationsCardProps) {
       </CardContent>
 
       <CardFooter className="w-full h-auto gap-4 flex justify-center">
-        <Button className="text-secondary-foreground bg-red-400">Recusar</Button>
-        <Button className="text-secondary-foreground">Aceitar</Button>
+        <Button className="text-secondary-foreground bg-red-400" onClick={() => onClick('rejected')}>Recusar</Button>
+        <Button className="text-secondary-foreground" onClick={() => onClick('accepted')}>Aceitar</Button>
       </CardFooter>
     </Card>
   )

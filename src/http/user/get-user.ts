@@ -29,7 +29,10 @@ export const getUser = async ({
       return null
     }
 
-    const user = userSnapshot.data() as any
+    const user = {
+      id: userSnapshot.id, 
+      ...userSnapshot.data(), 
+    } as any
 
     return user
   } catch (err) {

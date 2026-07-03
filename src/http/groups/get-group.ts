@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation'
 import { firestore } from '@/firebase/client'
 
 type TGetGroupProps = {
-  uid?: string | null
   groupId?: string | null
 }
 
@@ -13,13 +12,15 @@ type TGetGroupResponse = {
   id: string
   name: string
   users: string[]
+  drivers: string[]
+  ownerId: string
+  isRouteActive?: boolean
 }
 
 export const getGroup = async ({
-  uid,
   groupId,
 }: TGetGroupProps): Promise<TGetGroupResponse> => {
-  if (!uid || !groupId) {
+  if (!groupId) {
     throw new Error('....')
   }
 
@@ -34,7 +35,10 @@ export const getGroup = async ({
       throw new Error('....')
     }
 
-    const group = groupSnapshot.data() as any
+    const group = {
+      id: groupSnapshot.id,
+      ...groupSnapshot.data(),
+    } as any
 
     return group
   } catch (err) {
