@@ -37,6 +37,7 @@ import { useGetUser } from '@/http/user/get-user'
 
 export const addressSchema = z.object({
   boardingStatus: z.boolean(),
+  weeklyRoutine: z.array(z.string()).optional(),
   address: z.object({
     street: z.string().min(1, 'A rua é obrigatória.'),
     number: z.string().min(1, 'O número é obrigatório.'),
@@ -80,6 +81,7 @@ export function AddressForm() {
     resolver: zodResolver(addressSchema),
     defaultValues: {
       boardingStatus: true,
+      weeklyRoutine: [],
       address: {
         zipCode: '',
         street: '',
@@ -113,6 +115,7 @@ export function AddressForm() {
   useEffect(() => {
     if (userData) {
       form.setValue('boardingStatus', userData.boardingStatus ?? true)
+      form.setValue('weeklyRoutine', userData.weeklyRoutine ?? [])
       if (userData.address) {
         form.setValue('address.zipCode', userData.address.zipCode ?? '')
         form.setValue('address.street', userData.address.street ?? '')
@@ -220,6 +223,46 @@ export function AddressForm() {
                           </FormItem>
                         )}
                       />
+                    </div>
+
+                    <div className="flex h-auto w-full flex-col mt-4 gap-2">
+                      <h2 className="text-lg font-extralight">Rotina Semanal de Viagens:</h2>
+                      <h3 className="text-sm font-extralight text-muted-foreground">
+                        Selecione os dias da semana em que você normalmente utiliza a van. Isso ajudará no cálculo de vagas disponíveis.
+                      </h3>
+                      <div className="flex flex-wrap gap-4 mt-2 mb-4">
+                        {['seg', 'ter', 'qua', 'qui', 'sex'].map((day) => {
+                          const dayNames: Record<string, string> = {
+                            seg: 'Segunda',
+                            ter: 'Terça',
+                            qua: 'Quarta',
+                            qui: 'Quinta',
+                            sex: 'Sexta',
+                          }
+                          const currentValue = form.watch('weeklyRoutine') ?? []
+                          const isChecked = currentValue.includes(day)
+
+                          return (
+                            <label key={day} className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const checked = e.target.checked
+                                  if (checked) {
+                                    form.setValue('weeklyRoutine', [...currentValue, day])
+                                  } else {
+                                    form.setValue('weeklyRoutine', currentValue.filter((d: string) => d !== day))
+                                  }
+                                }}
+                                disabled={!canEdit}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary bg-background dark:bg-zinc-900"
+                              />
+                              {dayNames[day]}
+                            </label>
+                          )
+                        })}
+                      </div>
                     </div>
 
                     <Separator />

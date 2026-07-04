@@ -54,6 +54,6 @@ export const useGetUsersGroup = (): UseQueryResult<TGetUsersResponse> => {
     queryKey: ['users-group', groupId],
     queryFn: () => getUsersGroup({ groupId: groupId }),
     enabled: !!groupId,
-    staleTime: 60 * 60 * 24,
+    staleTime: 1000 * 5,
   })
 }
