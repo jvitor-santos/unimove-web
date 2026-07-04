@@ -43,6 +43,6 @@ export const useGetUserGroup = (
     queryKey: ['user-data', groupId, userId],
     queryFn: () => getUserGroup({ groupId: groupId!, userId: userId! }),
     enabled: !!groupId && !!userId,
-    staleTime: 60 * 60 * 1000, 
+    staleTime: 1000 * 5,
   });
 };

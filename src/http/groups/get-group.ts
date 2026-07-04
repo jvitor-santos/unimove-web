@@ -15,6 +15,7 @@ type TGetGroupResponse = {
   drivers: string[]
   ownerId: string
   isRouteActive?: boolean
+  capacity?: number
 }
 
 export const getGroup = async ({

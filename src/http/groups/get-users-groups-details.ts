@@ -44,6 +44,6 @@ export const useGetGroupUsersDetails = (): UseQueryResult<any> => {
     queryKey: ['group-users', groupId],
     queryFn: () => getGroupUsersDetails({ groupId }),
     enabled: !!groupId,
-    staleTime: 60 * 60 * 24,
+    staleTime: 1000 * 5,
   })
 }
