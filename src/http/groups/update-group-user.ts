@@ -38,10 +38,11 @@ export const useUpdateGroupUser = () => {
 
   const mutate = useMutation({
     mutationFn: updateGroupUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`group-user`, groupId] })
-      queryClient.invalidateQueries({ queryKey: [`group-users`, groupId] })
-      queryClient.invalidateQueries({ queryKey: [`users-group`, groupId] })
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['group-user', variables.groupId] })
+      queryClient.invalidateQueries({ queryKey: ['group-users', variables.groupId] })
+      queryClient.invalidateQueries({ queryKey: ['users-group', variables.groupId] })
+      queryClient.invalidateQueries({ queryKey: ['user-data', variables.groupId, variables.uid] })
     },
   })
 
