@@ -12,7 +12,7 @@ import {
   useReactTable,
   VisibilityState,
 } from '@tanstack/react-table'
-import { ArrowUpDown, BusFront, Check, Loader2, Play, Square, User, UserRoundCog, X } from 'lucide-react'
+import { ArrowUpDown, BusFront, Check, Loader2, Play, Square, User, UserRoundCog, UserMinus, X } from 'lucide-react'
 import NextLink from 'next/link'
 import { toast } from 'sonner'
 import { useStartRoute } from '@/http/groups/start-route'
@@ -36,12 +36,14 @@ import { useGetUsersGroup } from '@/http/groups/get-users-group'
 import { useParams } from 'next/navigation'
 import { useGetGroup } from '@/http/groups/get-group'
 import { useGetGroupUsersDetails } from '@/http/groups/get-users-groups-details'
+import { ConfirmRemoveMemberDialog } from './confirm-remove-member-dialog'
 
 export function MembersTable() {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState({})
+  const [userToRemove, setUserToRemove] = useState<{ id: string, name: string } | null>(null)
 
   const params = useParams()
   const groupId =
@@ -184,11 +186,16 @@ export function MembersTable() {
         const isUser = isAdmin || isDriver || id === data.id
 
         return (
-          <div className="flex h-auto justify-end">
+          <div className="flex h-auto justify-end gap-1">
+            {isAdmin && id !== data?.id && (
+              <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20" onClick={() => setUserToRemove({ id, name: row.original.displayName })}>
+                <UserMinus size={18} />
+              </Button>
+            )}
             {isUser && (
               <Button size="sm" variant="ghost" asChild>
                 <NextLink href={`/${groupId}/member/${id}`}>
-                  <UserRoundCog />
+                  <UserRoundCog size={18} />
                 </NextLink>
               </Button>
             )}
@@ -338,6 +345,16 @@ export function MembersTable() {
           </TableBody>
         </Table>
       </div>
+
+      {userToRemove && groupId && (
+        <ConfirmRemoveMemberDialog
+          isOpen={!!userToRemove}
+          onClose={() => setUserToRemove(null)}
+          groupId={groupId}
+          userId={userToRemove.id}
+          userName={userToRemove.name}
+        />
+      )}
     </div>
   )
 }

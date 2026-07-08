@@ -1,6 +1,7 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query'
-import { doc, getDoc } from 'firebase/firestore'
+import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query'
+import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 import { useParams } from 'next/navigation'
+import { useEffect } from 'react'
 
 import { firestore } from '@/firebase/client'
 
@@ -55,11 +56,35 @@ export const useGetGroup = (): UseQueryResult<TGetGroupResponse> => {
     typeof params.groupId === 'string'
       ? params.groupId
       : params.groupId?.[0]
+  
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!groupId) return
+
+    const route = `groups/${groupId}`
+    const groupRef = doc(firestore, route)
+
+    const unsubscribe = onSnapshot(groupRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const group = {
+          id: snapshot.id,
+          ...snapshot.data(),
+        } as TGetGroupResponse
+
+        queryClient.setQueryData(['group', groupId], group)
+      } else {
+        queryClient.setQueryData(['group', groupId], null)
+      }
+    })
+
+    return () => unsubscribe()
+  }, [groupId, queryClient])
 
   return useQuery({
     queryKey: ['group', groupId],
     queryFn: () => getGroup({ groupId }),
     enabled: !!groupId,
-    staleTime: 60 * 60 * 24,
+    staleTime: Infinity,
   })
 }
