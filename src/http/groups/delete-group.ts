@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { deleteDoc, doc } from 'firebase/firestore'
+import { deleteDoc, doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore'
 
 import { firestore } from '@/firebase/client'
 
@@ -14,12 +14,27 @@ export const deleteGroup = async ({
 
   try {
     const groupRef = doc(firestore, route)
+    const groupSnap = await getDoc(groupRef)
+
+    if (groupSnap.exists()) {
+      const groupData = groupSnap.data()
+      const users: string[] = groupData?.users || []
+      
+      // Remove the group from all users' profiles
+      const updatePromises = users.map(userId => {
+        const userRef = doc(firestore, `users/${userId}`)
+        return updateDoc(userRef, {
+          groups: arrayRemove(groupId)
+        })
+      })
+      await Promise.all(updatePromises)
+    }
 
     await deleteDoc(groupRef)
   } catch (err) {
     console.log('🚀 ~ err:', err)
 
-    throw new Error('....')
+    throw new Error('Failed to delete group.')
   }
 }
 

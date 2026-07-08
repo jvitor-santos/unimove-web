@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { Loader2, LogOut, Trash2 } from 'lucide-react'
 
 import { Footer } from "@/components/footer"
 import { GuestMembersTable } from "@/components/guest-members/guest-members-table"
@@ -18,6 +18,8 @@ import { useUpdateGroup } from "@/http/groups/update-group"
 import { WeeklySeatsDashboard } from "@/components/group/weekly-seats-dashboard"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { ConfirmDeleteGroupDialog } from '@/components/groups/confirm-delete-group-dialog'
+import { ConfirmRemoveMemberDialog } from '@/components/members/confirm-remove-member-dialog'
 
 export default function Group() {
   const params = useParams()
@@ -28,6 +30,8 @@ export default function Group() {
   const { mutateAsync: updateGroup, isPending: isUpdatingCapacity } = useUpdateGroup()
 
   const [capacityInput, setCapacityInput] = useState<string>('')
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false)
 
   useEffect(() => {
     if (group?.capacity !== undefined) {
@@ -70,6 +74,26 @@ export default function Group() {
         <div className="w-full h-full">
           <ScrollArea className="h-full p-4">
             
+            {/* Group Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-[4px] border border-muted bg-muted/5 mb-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium">Ações do Grupo</span>
+                <span className="text-xs text-muted-foreground">Opções disponíveis para o grupo atual.</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {!isOwner && (
+                  <Button variant="outline" className="text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20" onClick={() => setIsLeaveDialogOpen(true)}>
+                    <LogOut className="w-4 h-4 mr-2" /> Sair do Grupo
+                  </Button>
+                )}
+                {isOwner && (
+                  <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Apagar Grupo
+                  </Button>
+                )}
+              </div>
+            </div>
+
             {/* Driver/Owner capacity configuration panel */}
             {isCurrentUserDriverOrOwner && (
               <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-[4px] border border-muted bg-muted/5 mb-4">
@@ -130,6 +154,24 @@ export default function Group() {
       </main>
 
       <Footer />
+
+      {isDeleteDialogOpen && groupId && (
+        <ConfirmDeleteGroupDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          groupId={groupId}
+        />
+      )}
+
+      {isLeaveDialogOpen && groupId && currentUser && (
+        <ConfirmRemoveMemberDialog
+          isOpen={isLeaveDialogOpen}
+          onClose={() => setIsLeaveDialogOpen(false)}
+          groupId={groupId}
+          userId={currentUser.id}
+          userName={currentUser.displayName}
+        />
+      )}
     </div>
   );
 }

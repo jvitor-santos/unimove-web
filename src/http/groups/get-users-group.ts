@@ -1,8 +1,9 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query'
+import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore'
+import { useEffect } from 'react'
+import { useParams } from 'next/navigation'
 
 import { firestore } from '@/firebase/client'
-import { useParams } from 'next/navigation'
 
 type TGetUsersProps = {
   groupId?: string | null
@@ -50,10 +51,33 @@ export const useGetUsersGroup = (): UseQueryResult<TGetUsersResponse> => {
       ? params.groupId
       : params.groupId?.[0]
 
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!groupId) return
+
+    const route = `users`
+    const usersRef = collection(firestore, route)
+
+    const filters = [where('groups', 'array-contains', groupId)]
+    const usersQuery = query(usersRef, ...filters)
+
+    const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
+      const users = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as TGetUsersResponse
+
+      queryClient.setQueryData(['users-group', groupId], users)
+    })
+
+    return () => unsubscribe()
+  }, [groupId, queryClient])
+
   return useQuery({
     queryKey: ['users-group', groupId],
     queryFn: () => getUsersGroup({ groupId: groupId }),
     enabled: !!groupId,
-    staleTime: 1000 * 5,
+    staleTime: Infinity,
   })
 }
