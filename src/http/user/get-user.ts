@@ -1,8 +1,8 @@
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot } from 'firebase/firestore'
+import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 
 import { firestore } from '@/firebase/client'
-import { useQuery, UseQueryResult } from '@tanstack/react-query'
-
 import { useUser } from '@/hooks/use-user'
 
 type TGetUserProps = {
@@ -44,11 +44,34 @@ export const getUser = async ({
 
 export const useGetUser = (): UseQueryResult<any> => {
   const { currentUser } = useUser()
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!currentUser?.uid) return
+
+    const route = `users/${currentUser.uid}`
+    const userRef = doc(firestore, route)
+
+    const unsubscribe = onSnapshot(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const user = {
+          id: snapshot.id,
+          ...snapshot.data(),
+        } as any
+
+        queryClient.setQueryData(['user', currentUser.uid], user)
+      } else {
+        queryClient.setQueryData(['user', currentUser.uid], null)
+      }
+    })
+
+    return () => unsubscribe()
+  }, [currentUser?.uid, queryClient])
 
   return useQuery({
     queryKey: ['user', currentUser?.uid],
     queryFn: () => getUser({ uid: currentUser?.uid }),
     enabled: !!currentUser?.uid,
-    staleTime: 60 * 60 * 24,
+    staleTime: Infinity,
   })
 }

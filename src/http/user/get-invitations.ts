@@ -1,5 +1,6 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query'
+import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore'
+import { useEffect } from 'react'
 
 import { firestore } from '@/firebase/client'
 
@@ -50,10 +51,36 @@ export const getInvitations = async ({
 export const useGetInvitations = ({
   email,
 }: TGetInvitationsProps): UseQueryResult<TGetInvitationsResponse> => {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!email) return
+
+    const route = `invitations`
+    const invitationsRef = collection(firestore, route)
+
+    const filters = [
+      where('email', '==', email),
+      where('status', '==', 'pending')
+    ]
+    const invitationsQuery = query(invitationsRef, ...filters)
+
+    const unsubscribe = onSnapshot(invitationsQuery, (snapshot) => {
+      const invitations = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as TGetInvitationsResponse
+
+      queryClient.setQueryData(['invitations-user', { email }], invitations)
+    })
+
+    return () => unsubscribe()
+  }, [email, queryClient])
+
   return useQuery({
     queryKey: ['invitations-user', { email }],
     queryFn: () => getInvitations({ email }),
     enabled: !!email,
-    staleTime: 0,
+    staleTime: Infinity,
   })
 }
